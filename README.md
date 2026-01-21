@@ -7,7 +7,7 @@ A modern React Native weather application providing real-time weather data for 2
 
 ![alt text](image.png)
 
-[Live Demo](#) · [Report Bug](#) · [Request Feature](#)
+
 
 ---
 
