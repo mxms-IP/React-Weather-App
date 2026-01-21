@@ -5,9 +5,9 @@ A modern React Native weather application providing real-time weather data for 2
 [![React Native](https://img.shields.io/badge/React%20Native-0.76.5-blue.svg)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2052-black.svg)](https://expo.dev/)
 
-![alt text](image.png)
 
 
+<img src="assets\weather-app.jpeg" alt="Homepage" height="400px">
 
 ---
 
