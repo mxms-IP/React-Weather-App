@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components/native";
 import moment from "moment";
+import { getIconUrl, COLORS, LAYOUT, TYPOGRAPHY } from '../constants';
 
 const DailyForecast = ({ day, index }) => {
   return (
@@ -13,7 +14,7 @@ const DailyForecast = ({ day, index }) => {
       <MiddleSection>
         <WeatherIcon
           source={{
-            uri: `http://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`,
+            uri: getIconUrl(day.weather[0].icon, 'SMALL'),
           }}
           resizeMode={"contain"}
         />
@@ -32,15 +33,14 @@ const DailyForecast = ({ day, index }) => {
   );
 };
 
-// CRITICAL: No max-width, no margins - parent container controls width
 const DayContainer = styled.View`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background-color: rgba(255, 255, 255, 0.85);
-  border-radius: 16px;
-  padding: 16px 20px;
-  margin-bottom: 8px;
+  background-color: ${COLORS.CARD_BG};
+  border-radius: ${LAYOUT.BORDER_RADIUS.MEDIUM}px;
+  padding: 16px ${LAYOUT.HORIZONTAL_PADDING}px;
+  margin-bottom: ${LAYOUT.CARD_SPACING}px;
   width: 100%;
 `;
 
@@ -50,15 +50,15 @@ const LeftSection = styled.View`
 `;
 
 const DayName = styled.Text`
-  font-size: 18px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-size: ${TYPOGRAPHY.SIZES.SUBHEADING}px;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.BOLD};
+  color: ${COLORS.TEXT.PRIMARY};
   letter-spacing: 0.3px;
 `;
 
 const DateText = styled.Text`
-  font-size: 13px;
-  color: #7f8c8d;
+  font-size: ${TYPOGRAPHY.SIZES.CAPTION}px;
+  color: ${COLORS.TEXT.SECONDARY};
   margin-top: 2px;
 `;
 
@@ -77,8 +77,8 @@ const WeatherIcon = styled.Image`
 `;
 
 const Description = styled.Text`
-  font-size: 14px;
-  color: #34495e;
+  font-size: ${TYPOGRAPHY.SIZES.LABEL}px;
+  color: ${COLORS.TEXT.LIGHT};
   text-transform: capitalize;
   flex-shrink: 1;
 `;
@@ -94,27 +94,27 @@ const TempRange = styled.View`
 `;
 
 const HighTemp = styled.Text`
-  font-size: 20px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-size: ${TYPOGRAPHY.SIZES.HEADING}px;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.BOLD};
+  color: ${COLORS.TEXT.PRIMARY};
 `;
 
 const TempDivider = styled.Text`
-  font-size: 16px;
-  color: #95a5a6;
+  font-size: ${TYPOGRAPHY.SIZES.BODY}px;
+  color: ${COLORS.TEXT.TERTIARY};
   margin: 0 4px;
 `;
 
 const LowTemp = styled.Text`
-  font-size: 18px;
-  font-weight: 500;
-  color: #7f8c8d;
+  font-size: ${TYPOGRAPHY.SIZES.SUBHEADING}px;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.MEDIUM};
+  color: ${COLORS.TEXT.SECONDARY};
 `;
 
 const FeelsLike = styled.Text`
-  font-size: 12px;
-  color: #95a5a6;
+  font-size: ${TYPOGRAPHY.SIZES.SMALL}px;
+  color: ${COLORS.TEXT.TERTIARY};
   margin-top: 4px;
 `;
 
-export default DailyForecast;
+export default React.memo(DailyForecast);

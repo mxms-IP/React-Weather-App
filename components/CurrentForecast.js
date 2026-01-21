@@ -1,5 +1,6 @@
 import React from "react";
 import styled from "styled-components/native";
+import { getIconUrl, LAYOUT, COLORS, TYPOGRAPHY } from '../constants';
 
 const CurrentForecast = ({ currentWeather }) => {
   if (!currentWeather || !currentWeather.current) {
@@ -13,7 +14,7 @@ const CurrentForecast = ({ currentWeather }) => {
       <CurrentTempView>
         <WeatherIcon
           source={{
-            uri: `http://openweathermap.org/img/wn/${current.weather[0].icon}@4x.png`,
+            uri: getIconUrl(current.weather[0].icon, 'LARGE'),
           }}
           resizeMode={"contain"}
         />
@@ -73,9 +74,8 @@ const CurrentForecast = ({ currentWeather }) => {
   );
 };
 
-// CRITICAL: No max-width - parent container controls width
 const Container = styled.View`
-  padding: 20px 0;
+  padding: ${LAYOUT.VERTICAL_PADDING}px 0;
   align-items: center;
   width: 100%;
 `;
@@ -93,31 +93,31 @@ const WeatherIcon = styled.Image`
 `;
 
 const Temperature = styled.Text`
-  font-size: 72px;
-  font-weight: 300;
-  color: white;
+  font-size: ${TYPOGRAPHY.SIZES.HERO}px;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.LIGHT};
+  color: ${COLORS.TEXT.WHITE};
   text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
 `;
 
 const Description = styled.Text`
-  font-size: 24px;
-  color: white;
+  font-size: ${TYPOGRAPHY.SIZES.TITLE}px;
+  color: ${COLORS.TEXT.WHITE};
   text-transform: capitalize;
   margin-bottom: 20px;
   text-shadow: 0px 1px 4px rgba(0, 0, 0, 0.3);
 `;
 
 const DetailsCard = styled.View`
-  background-color: rgba(255, 255, 255, 0.85);
-  border-radius: 16px;
-  padding: 20px;
+  background-color: ${COLORS.CARD_BG};
+  border-radius: ${LAYOUT.BORDER_RADIUS.MEDIUM}px;
+  padding: ${LAYOUT.HORIZONTAL_PADDING}px;
   width: 100%;
 `;
 
 const DetailRow = styled.View`
   flex-direction: row;
   justify-content: space-around;
-  margin-bottom: 15px;
+  margin-bottom: ${LAYOUT.ELEMENT_SPACING}px;
 `;
 
 const DetailItem = styled.View`
@@ -126,17 +126,17 @@ const DetailItem = styled.View`
 `;
 
 const DetailLabel = styled.Text`
-  font-size: 12px;
-  color: #7f8c8d;
+  font-size: ${TYPOGRAPHY.SIZES.SMALL}px;
+  color: ${COLORS.TEXT.SECONDARY};
   margin-bottom: 6px;
-  font-weight: 600;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.SEMIBOLD};
   letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.Text`
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: ${TYPOGRAPHY.SIZES.SUBHEADING}px;
+  font-weight: ${TYPOGRAPHY.WEIGHTS.SEMIBOLD};
+  color: ${COLORS.TEXT.PRIMARY};
 `;
 
 export default CurrentForecast;

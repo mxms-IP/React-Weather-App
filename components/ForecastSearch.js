@@ -1,6 +1,8 @@
 import React from "react";
 import { TextInput, TouchableOpacity } from "react-native";
 import styled from "styled-components/native";
+import { COLORS, LAYOUT, TYPOGRAPHY } from '../constants';
+import { Image } from 'react-native';
 
 const ForecastSearch = ({
   city,
@@ -45,7 +47,7 @@ const ForecastSearch = ({
           placeholder={
             toggleSearch === "city" ? "Enter city name" : "Enter postal code"
           }
-          placeholderTextColor="rgba(0,0,0,0.4)"
+          placeholderTextColor={COLORS.PLACEHOLDER}
           value={toggleSearch === "city" ? city : postalCode}
           onChangeText={(text) => {
             if (toggleSearch === "city") {
@@ -59,44 +61,48 @@ const ForecastSearch = ({
         />
         
         <SearchIconButton onPress={handleSearch} activeOpacity={0.7}>
-          <SearchIcon><img width="20" height="20" src="https://img.icons8.com/ios/50/search--v1.png" alt="search--v1"/></SearchIcon>
+          <Image  
+            style={{ width: 20, height: 20 }} 
+            source={{ uri: 'https://img.icons8.com' }} 
+          />
         </SearchIconButton>
+
       </SearchBarContainer>
     </Container>
   );
 };
 
 const Container = styled.View`
-  padding: 20px 0 10px 0;
+  padding: ${LAYOUT.VERTICAL_PADDING+10}px 0 10px 0;
   width: 100%;
 `;
 
 const ToggleContainer = styled.View`
   flex-direction: row;
-  background-color: rgba(255, 255, 255, 0.25);
-  border-radius: 25px;
+  background-color: ${COLORS.TOGGLE_BG};
+  border-radius: ${LAYOUT.BORDER_RADIUS.LARGE}px;
   padding: 4px;
-  margin-bottom: 15px;
+  margin-bottom: ${LAYOUT.ELEMENT_SPACING}px;
   align-self: center;
 `;
 
 const ToggleButton = styled.TouchableOpacity`
   padding: 10px 24px;
   border-radius: 22px;
-  background-color: ${props => props.active ? 'white' : 'transparent'};
+  background-color: ${props => props.active ? COLORS.TEXT.WHITE : 'transparent'};
 `;
 
 const ToggleText = styled.Text`
-  font-size: 14px;
-  font-weight: ${props => props.active ? '600' : '500'};
-  color: ${props => props.active ? '#4a90e2' : 'rgba(255, 255, 255, 0.9)'};
+  font-size: ${TYPOGRAPHY.SIZES.LABEL}px;
+  font-weight: ${props => props.active ? TYPOGRAPHY.WEIGHTS.SEMIBOLD : TYPOGRAPHY.WEIGHTS.MEDIUM};
+  color: ${props => props.active ? COLORS.PRIMARY : 'rgba(255, 255, 255, 0.9)'};
 `;
 
 const SearchBarContainer = styled.View`
   flex-direction: row;
   align-items: center;
-  background-color: white;
-  border-radius: 25px;
+  background-color: ${COLORS.TEXT.WHITE};
+  border-radius: ${LAYOUT.BORDER_RADIUS.LARGE}px;
   padding: 4px;
   width: 100%;
   shadow-color: #000;
@@ -108,16 +114,16 @@ const SearchBarContainer = styled.View`
 
 const StyledInput = styled.TextInput`
   flex: 1;
-  padding: 12px 20px;
-  font-size: 16px;
-  color: #2c3e50;
+  padding: 12px ${LAYOUT.HORIZONTAL_PADDING}px;
+  font-size: ${TYPOGRAPHY.SIZES.BODY}px;
+  color: ${COLORS.TEXT.PRIMARY};
   border-width: 0;
   outline-width: 0;
   outline-style: none;
 `;
 
 const SearchIconButton = styled.TouchableOpacity`
-  background-color: #6a9bb3;
+  background-color: ${COLORS.SECONDARY};
   width: 48px;
   height: 48px;
   border-radius: 24px;
