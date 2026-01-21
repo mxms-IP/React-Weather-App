@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, ImageBackground, Alert } from "react-native";
+import { ScrollView, ImageBackground } from "react-native";
 import ForecastSearch from "./components/ForecastSearch";
 import CurrentForecast from "./components/CurrentForecast";
 import DailyForecast from "./components/DailyForecast";
@@ -18,7 +18,6 @@ const App = () => {
   const controller = new AbortController();
   const signal = controller.signal;
 
-  //fetch lat long by city (works worldwide)
   const fetchLatLongHandler = () => {
     fetch(
       `http://api.openweathermap.org/data/2.5/weather?q=${city}&APPID=${config.API_KEY}`
@@ -28,40 +27,24 @@ const App = () => {
         if (data.coord) {
           setLat(data.coord.lat);
           setLong(data.coord.lon);
-        } else {
-          console.log("City not found");
-          Alert.alert("Error", "City not found. Please try again.");
         }
       })
       .catch((err) => {
         console.log("Error fetching city:", err);
-        Alert.alert("Error", "Failed to fetch location. Please check your city name.");
       });
   };
 
-  //fetch lat long by postal code using OpenWeather's FREE Geocoding API
-  //NO GOOGLE API NEEDED! Works for many countries worldwide
   const fetchByPostalHandler = () => {
-    // Auto-detect country based on postal code format
-    const cleanPostalCode = postalCode.replace(/\s/g, ""); // Remove spaces
-    let countryCode = "US"; // Default to US
+    const cleanPostalCode = postalCode.replace(/\s/g, "");
+    let countryCode = "US";
     
-    // Detect country based on postal code format
     if (/^[A-Za-z]\d[A-Za-z]\d[A-Za-z]\d$/.test(cleanPostalCode)) {
-      // Canadian postal code (e.g., L4W1S9)
       countryCode = "CA";
     } else if (/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/.test(postalCode)) {
-      // UK postal code (e.g., E14, SW1A 1AA)
       countryCode = "GB";
     } else if (/^\d{4}$/.test(cleanPostalCode)) {
-      // Could be Australia (4 digits) or other countries
       countryCode = "AU";
-    } else if (/^\d{5}$/.test(cleanPostalCode)) {
-      // US zip code (5 digits)
-      countryCode = "US";
     }
-    
-    console.log(`Searching for postal code: ${cleanPostalCode}, Country: ${countryCode}`);
     
     fetch(
       `http://api.openweathermap.org/geo/1.0/zip?zip=${cleanPostalCode},${countryCode}&appid=${config.API_KEY}`
@@ -71,66 +54,151 @@ const App = () => {
         if (data.lat && data.lon) {
           setLat(data.lat);
           setLong(data.lon);
-          console.log(`Found location: ${data.name}`);
-        } else if (data.cod === "404") {
-          console.log("Postal code not found");
-          Alert.alert(
-            "Not Found", 
-            `Postal code not found in ${countryCode}. Try entering the city name instead.`
-          );
-        } else {
-          console.log("Invalid postal code response:", data);
-          Alert.alert("Error", "Could not find location. Try entering the city name instead.");
         }
       })
       .catch((err) => {
-        console.log("Error fetching postal code:", err);
-        Alert.alert("Error", "Failed to fetch location. Please try entering the city name instead.");
+        console.log("Error:", err);
       });
   };
 
-  //updates the weather when lat long changes
   useEffect(() => {
-    fetch(
-      `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${long}&exclude=hourly,minutely&units=metric&appid=${config.API_KEY}`,
-      { signal }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setWeather(data);
-      })
-      .catch((err) => {
-        console.log("error", err);
-      });
+    const fetchWeather = async () => {
+      try {
+        const currentRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&units=metric&appid=${config.API_KEY}`
+        );
+        const currentData = await currentRes.json();
+
+        const forecastRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${long}&units=metric&appid=${config.API_KEY}`
+        );
+        const forecastData = await forecastRes.json();
+
+        const transformed = {
+          lat: lat,
+          lon: long,
+          timezone: currentData.timezone,
+          timezone_offset: currentData.timezone,
+          current: {
+            dt: currentData.dt,
+            sunrise: currentData.sys?.sunrise || 0,
+            sunset: currentData.sys?.sunset || 0,
+            temp: currentData.main?.temp || 0,
+            feels_like: currentData.main?.feels_like || 0,
+            pressure: currentData.main?.pressure || 0,
+            humidity: currentData.main?.humidity || 0,
+            dew_point: 0,
+            uvi: 0,
+            clouds: currentData.clouds?.all || 0,
+            visibility: currentData.visibility || 0,
+            wind_speed: currentData.wind?.speed || 0,
+            wind_deg: currentData.wind?.deg || 0,
+            weather: currentData.weather || [],
+          },
+          daily: transformToDailyForecast(forecastData.list),
+        };
+
+        setWeather(transformed);
+      } catch (err) {
+        console.log("Error fetching weather:", err);
+      }
+    };
+
+    fetchWeather();
     return () => controller.abort();
   }, [lat, long]);
+
+  const transformToDailyForecast = (forecastList) => {
+    if (!forecastList || forecastList.length === 0) return [];
+
+    const dailyMap = {};
+
+    forecastList.forEach((item) => {
+      const date = new Date(item.dt * 1000).toDateString();
+
+      if (!dailyMap[date]) {
+        dailyMap[date] = {
+          dt: item.dt,
+          sunrise: 0,
+          sunset: 0,
+          moonrise: 0,
+          moonset: 0,
+          moon_phase: 0,
+          temp: {
+            day: item.main.temp,
+            min: item.main.temp_min,
+            max: item.main.temp_max,
+            night: item.main.temp,
+            eve: item.main.temp,
+            morn: item.main.temp,
+          },
+          feels_like: {
+            day: item.main.feels_like,
+            night: item.main.feels_like,
+            eve: item.main.feels_like,
+            morn: item.main.feels_like,
+          },
+          pressure: item.main.pressure,
+          humidity: item.main.humidity,
+          dew_point: 0,
+          wind_speed: item.wind.speed,
+          wind_deg: item.wind.deg,
+          wind_gust: item.wind.gust || 0,
+          weather: item.weather,
+          clouds: item.clouds.all,
+          pop: item.pop || 0,
+          rain: item.rain ? item.rain["3h"] || 0 : 0,
+          uvi: 0,
+        };
+      } else {
+        dailyMap[date].temp.min = Math.min(
+          dailyMap[date].temp.min,
+          item.main.temp_min
+        );
+        dailyMap[date].temp.max = Math.max(
+          dailyMap[date].temp.max,
+          item.main.temp_max
+        );
+        
+        dailyMap[date].feels_like.day = 
+          (dailyMap[date].feels_like.day + item.main.feels_like) / 2;
+      }
+    });
+
+    return Object.values(dailyMap).slice(0, 7);
+  };
 
   return (
     <Container>
       <ImageBackground source={bgImg} style={{ width: "100%", height: "100%" }}>
-        <ForecastSearch
-          city={city}
-          setCity={setCity}
-          fetchLatLongHandler={fetchLatLongHandler}
-          toggleSearch={toggleSearch}
-          setToggleSearch={setToggleSearch}
-          fetchByPostalHandler={fetchByPostalHandler}
-          setPostalCode={setPostalCode}
-          postalCode={postalCode}
-        />
-        <CurrentForecast currentWeather={weather} timezone={weather.timezone} />
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ flex: 1 }}>
-          <FutureForecastContainer>
-            {weather.daily ? (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 30 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Unified Container for ALL content - ensures consistent width */}
+          <ContentContainer>
+            <ForecastSearch
+              city={city}
+              setCity={setCity}
+              fetchLatLongHandler={fetchLatLongHandler}
+              toggleSearch={toggleSearch}
+              setToggleSearch={setToggleSearch}
+              fetchByPostalHandler={fetchByPostalHandler}
+              setPostalCode={setPostalCode}
+              postalCode={postalCode}
+            />
+            
+            <CurrentForecast currentWeather={weather} timezone={weather.timezone} />
+            
+            {weather.daily && weather.daily.length > 0 ? (
               weather.daily.map((day, index) => {
                 if (index !== 0) {
                   return <DailyForecast key={day.dt} day={day} index={index} />;
                 }
+                return null;
               })
-            ) : (
-              <NoWeather>No Weather to show</NoWeather>
-            )}
-          </FutureForecastContainer>
+            ) : null}
+          </ContentContainer>
         </ScrollView>
       </ImageBackground>
     </Container>
@@ -139,18 +207,15 @@ const App = () => {
 
 const Container = styled.View`
   flex: 1;
-  background-color: dodgerblue;
+  background-color: #4a90e2;
 `;
 
-const NoWeather = styled.Text`
-  text-align: center;
-  color: white;
-`;
-
-const FutureForecastContainer = styled.View`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// CRITICAL: This container enforces consistent width for ALL children
+const ContentContainer = styled.View`
+  width: 100%;
+  max-width: 600px;
+  align-self: center;
+  padding: 0 20px;
 `;
 
 export default App;
