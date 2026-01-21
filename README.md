@@ -140,7 +140,6 @@ Have questions? Feel free to reach out!
 ---
 
 <div align="center">
-  Made with ❤️ by Mxms Dcms
   
   ⭐ Star this repo if you found it helpful!
 </div>
