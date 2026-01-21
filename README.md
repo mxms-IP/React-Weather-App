@@ -4,7 +4,8 @@ A modern React Native weather application providing real-time weather data for 2
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.76.5-blue.svg)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-SDK%2052-black.svg)](https://expo.dev/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+![alt text](image.png)
 
 [Live Demo](#) · [Report Bug](#) · [Request Feature](#)
 
@@ -12,11 +13,11 @@ A modern React Native weather application providing real-time weather data for 2
 
 ## ✨ Features
 
-- 🌍 **Global Coverage** - 200,000+ cities and 15+ countries postal code support
-- 🎨 **Professional UI** - Material Design with unified layout system
-- 🔒 **Production Ready** - Error handling, loading states, input validation
-- ⚡ **Optimized** - React.memo reducing re-renders by 85%
-- 🆓 **Free APIs** - No payment required (1,000 calls/day)
+- **Global Coverage** - 200,000+ cities and 15+ countries postal code support
+- **Professional UI** - Material Design with unified layout system
+- **Production Ready** - Error handling, loading states, input validation
+- **Optimized** - React.memo reducing re-renders by 85%
+- **Free APIs** - No payment required (1,000 calls/day)
 
 ---
 
@@ -117,7 +118,7 @@ npm run test:coverage
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@mxmsdcms](#)
+- GitHub: [[@mxmsdcms](https://github.com/mxms-IP)](#)
 
 ---
 
