@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, ImageBackground, Alert, ActivityIndicator } from "react-native";
+import { ScrollView, ImageBackground, ActivityIndicator, Platform } from "react-native";
+import * as Location from 'expo-location';
 import ForecastSearch from "./components/ForecastSearch";
 import CurrentForecast from "./components/CurrentForecast";
 import DailyForecast from "./components/DailyForecast";
@@ -22,10 +23,11 @@ const App = () => {
   const [long, setLong] = useState(DEFAULTS.LOCATION.LONGITUDE);
   const [weather, setWeather] = useState({});
   const [loading, setLoading] = useState(false);
+  const [locationName, setLocationName] = useState(""); // Store detected location name
   const [errorState, setErrorState] = useState({
     hasError: false,
     message: "",
-    type: "", // 'network', 'not_found', 'api_key', 'unknown'
+    type: "",
     canRetry: true
   });
 
@@ -33,9 +35,75 @@ const App = () => {
   const signal = controller.signal;
 
   /**
-   * Unified error handler - single source of truth for errors
-   * Prevents duplicate error displays
-   * Categorizes errors for appropriate user messaging
+   * Request location permission and get current location
+   * Called automatically on app load
+   */
+  const getCurrentLocation = async () => {
+    try {
+      setLoading(true);
+      
+      // Request permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        setErrorState({
+          hasError: true,
+          message: "Location permission denied. Please enable location access in settings or search manually.",
+          type: "permission_denied",
+          canRetry: false
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Get current position
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { latitude, longitude } = location.coords;
+      
+      // Reverse geocode to get city name
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude
+      });
+
+      if (reverseGeocode && reverseGeocode.length > 0) {
+        const address = reverseGeocode[0];
+        const cityName = address.city || address.district || address.region || "Your Location";
+        setLocationName(cityName);
+        setCity(cityName);
+      }
+
+      // Update coordinates
+      setLat(latitude);
+      setLong(longitude);
+      
+      clearError();
+      
+    } catch (error) {
+      console.error("Error getting location:", error);
+      setErrorState({
+        hasError: true,
+        message: "Unable to get your location. You can search manually instead.",
+        type: "location_error",
+        canRetry: true
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Auto-detect location on app load
+   */
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  /**
+   * Unified error handler
    */
   const handleError = (error, context) => {
     console.error(`Error in ${context}:`, error);
@@ -47,7 +115,6 @@ const App = () => {
       canRetry: true
     };
 
-    // Categorize error type
     if (error.message === "CITY_NOT_FOUND" || error.message === "POSTAL_NOT_FOUND") {
       errorInfo = {
         hasError: true,
@@ -62,7 +129,7 @@ const App = () => {
         hasError: true,
         message: "Service configuration error. Please contact support.",
         type: "api_key",
-        canRetry: false // Don't let user retry if API key is wrong
+        canRetry: false
       };
     } else if (error.message === "Failed to fetch" || error.message === "Network request failed") {
       errorInfo = {
@@ -79,7 +146,6 @@ const App = () => {
         canRetry: true
       };
     } else {
-      // Unknown error - use safe mode
       errorInfo = {
         hasError: true,
         message: "Something went wrong. Please try again or search for a different location.",
@@ -88,15 +154,12 @@ const App = () => {
       };
     }
 
-    // Update error state (this shows in UI, not alert)
     setErrorState(errorInfo);
     setLoading(false);
-    
-    // DO NOT show Alert.alert - error is already displayed in UI
   };
 
   /**
-   * Clear error state when user tries new search
+   * Clear error state
    */
   const clearError = () => {
     setErrorState({
@@ -108,7 +171,7 @@ const App = () => {
   };
 
   /**
-   * Validates city input before making API call
+   * Validates city input
    */
   const validateCityInput = () => {
     if (!city || city.trim().length === 0) {
@@ -135,7 +198,7 @@ const App = () => {
   };
 
   /**
-   * Validates postal code input before making API call
+   * Validates postal code input
    */
   const validatePostalInput = () => {
     if (!postalCode || postalCode.trim().length === 0) {
@@ -163,11 +226,9 @@ const App = () => {
   };
 
   /**
-   * Fetches latitude and longitude by city name
-   * Handles all errors gracefully without alerts
+   * Fetches coordinates by city name
    */
   const fetchLatLongHandler = () => {
-    // Validate input first
     if (!validateCityInput()) return;
 
     clearError();
@@ -186,6 +247,7 @@ const App = () => {
         if (data.coord && data.coord.lat && data.coord.lon) {
           setLat(data.coord.lat);
           setLong(data.coord.lon);
+          setLocationName(data.name); // Update location name from API
           clearError();
         } else {
           throw new Error("CITY_NOT_FOUND");
@@ -200,11 +262,9 @@ const App = () => {
   };
 
   /**
-   * Fetches latitude and longitude by postal code
-   * Handles all errors gracefully without alerts
+   * Fetches coordinates by postal code
    */
   const fetchByPostalHandler = () => {
-    // Validate input first
     if (!validatePostalInput()) return;
 
     clearError();
@@ -226,6 +286,7 @@ const App = () => {
         if (data.lat && data.lon) {
           setLat(data.lat);
           setLong(data.lon);
+          setLocationName(data.name || postalCode); // Update location name
           clearError();
         } else {
           throw new Error("POSTAL_NOT_FOUND");
@@ -240,20 +301,17 @@ const App = () => {
   };
 
   /**
-   * Fetches weather data using FREE OpenWeather APIs
-   * Implements safe mode - continues showing last good data on errors
+   * Fetches weather data
    */
   useEffect(() => {
     const fetchWeather = async () => {
-      // Validate coordinates
       if (!lat || !long || isNaN(lat) || isNaN(long)) {
-        return; // Silently skip invalid coordinates
+        return;
       }
 
       setLoading(true);
 
       try {
-        // Fetch current weather
         const currentRes = await fetch(
           `${API.BASE_URL}${API.ENDPOINTS.CURRENT_WEATHER}?lat=${lat}&lon=${long}&units=${API.PARAMS.UNITS}&appid=${config.API_KEY}`
         );
@@ -267,7 +325,6 @@ const App = () => {
           throw new Error("INVALID_WEATHER_DATA");
         }
 
-        // Fetch 5-day forecast
         const forecastRes = await fetch(
           `${API.BASE_URL}${API.ENDPOINTS.FORECAST_5DAY}?lat=${lat}&lon=${long}&units=${API.PARAMS.UNITS}&appid=${config.API_KEY}`
         );
@@ -280,7 +337,6 @@ const App = () => {
           throw new Error("INVALID_FORECAST_DATA");
         }
 
-        // Transform data
         const transformed = {
           lat: lat,
           lon: long,
@@ -305,12 +361,9 @@ const App = () => {
           daily: transformToDailyForecast(forecastData.list),
         };
 
-        // Success - update weather and clear any errors
         setWeather(transformed);
         clearError();
       } catch (err) {
-        // Don't clear existing weather data - keep showing last good data
-        // Just show error message
         handleError(err, "weather");
       } finally {
         setLoading(false);
@@ -322,7 +375,7 @@ const App = () => {
   }, [lat, long]);
 
   /**
-   * Transforms 5-day forecast data to daily format
+   * Transforms forecast data to daily format
    */
   const transformToDailyForecast = (forecastList) => {
     if (!forecastList || forecastList.length === 0) return [];
@@ -392,6 +445,17 @@ const App = () => {
           showsVerticalScrollIndicator={false}
         >
           <ContentContainer>
+            {/* Location Button */}
+            <LocationButtonContainer>
+              <LocationButton onPress={getCurrentLocation} activeOpacity={0.7}>
+                <LocationIcon>📍</LocationIcon>
+                <LocationText>Use My Location</LocationText>
+              </LocationButton>
+              {locationName && (
+                <CurrentLocationText>Showing: {locationName}</CurrentLocationText>
+              )}
+            </LocationButtonContainer>
+
             <ForecastSearch
               city={city}
               setCity={setCity}
@@ -403,12 +467,11 @@ const App = () => {
               postalCode={postalCode}
             />
             
-            {/* Error Display - Single Source of Truth */}
             {errorState.hasError && (
               <ErrorCard>
                 <ErrorIcon>⚠️</ErrorIcon>
                 <ErrorMessage>{errorState.message}</ErrorMessage>
-                {errorState.canRetry && (
+                {errorState.canRetry && errorState.type !== "permission_denied" && (
                   <RetryButton 
                     onPress={() => {
                       clearError();
@@ -433,15 +496,15 @@ const App = () => {
               </ErrorCard>
             )}
 
-            {/* Loading Indicator */}
             {loading && (
               <LoadingContainer>
                 <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-                <LoadingText>Loading weather data...</LoadingText>
+                <LoadingText>
+                  {errorState.type === "permission_denied" ? "Waiting for permission..." : "Loading weather data..."}
+                </LoadingText>
               </LoadingContainer>
             )}
 
-            {/* Weather Content - Show even if there's an error (safe mode) */}
             {!loading && weather.current && (
               <>
                 <CurrentForecast currentWeather={weather} timezone={weather.timezone} />
@@ -457,11 +520,10 @@ const App = () => {
               </>
             )}
 
-            {/* Empty State - Only show if no weather data at all */}
             {!loading && !weather.current && !errorState.hasError && (
               <EmptyState>
                 <EmptyIcon>🌤️</EmptyIcon>
-                <EmptyText>Search for a city to see weather forecast</EmptyText>
+                <EmptyText>Tap "Use My Location" or search for a city</EmptyText>
               </EmptyState>
             )}
           </ContentContainer>
@@ -481,6 +543,43 @@ const ContentContainer = styled.View`
   max-width: ${LAYOUT.MAX_WIDTH}px;
   align-self: center;
   padding: 0 ${LAYOUT.HORIZONTAL_PADDING}px;
+`;
+
+const LocationButtonContainer = styled.View`
+  margin-top: ${LAYOUT.VERTICAL_PADDING}px;
+  margin-bottom: ${LAYOUT.SECTION_SPACING}px;
+  align-items: center;
+`;
+
+const LocationButton = styled.TouchableOpacity`
+  flex-direction: row;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.3);
+  padding: 12px 24px;
+  border-radius: ${LAYOUT.BORDER_RADIUS.LARGE}px;
+  shadow-color: #000;
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.1;
+  shadow-radius: 4px;
+  elevation: 2;
+`;
+
+const LocationIcon = styled.Text`
+  font-size: 20px;
+  margin-right: 8px;
+`;
+
+const LocationText = styled.Text`
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+`;
+
+const CurrentLocationText = styled.Text`
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  margin-top: 8px;
+  font-style: italic;
 `;
 
 const ErrorCard = styled.View`

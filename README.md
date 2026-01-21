@@ -7,7 +7,7 @@ A modern React Native weather application providing real-time weather data for 2
 
 
 
-<img src="assets\weather-app.jpeg" alt="Homepage" height="400px">
+<img src="assets\weather-app.png" alt="Homepage" height="400px">
 
 ---
 

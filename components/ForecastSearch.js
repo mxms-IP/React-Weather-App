@@ -63,7 +63,7 @@ const ForecastSearch = ({
         <SearchIconButton onPress={handleSearch} activeOpacity={0.7}>
           <Image  
             style={{ width: 20, height: 20 }} 
-            source={{ uri: 'https://img.icons8.com' }} 
+            source={{ uri: 'assets\search.png' }} 
           />
         </SearchIconButton>
 
